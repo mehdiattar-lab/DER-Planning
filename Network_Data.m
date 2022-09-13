@@ -1,4 +1,5 @@
-% Network Information
+% Network Information from a real distribution system
+% it only consists one bus from MV side and the rest is LV
 
 %Bus Type Vm Va BasekV Vmin Vmax
 Bus=[
