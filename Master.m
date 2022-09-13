@@ -1,3 +1,9 @@
+% Copyright 2022 Tampere University, Tampere, Finland
+% This software was developed as a part of the course distributed energy resources in electricity networks
+% This source code is licensed under the MIT license.
+% Author: Mehdi Attar <Mehdi.attar@tuni.fi>
+
+
 % Master program
 clear;
 clc;
@@ -118,7 +124,8 @@ switch PlanningType
      y=Nodal_voltage(8,:);
      plot(x,y,'.')
      title('Voltage (p.u.)- deterministic')
-     Voltage_Violation_hour_Deterministic = numel(find(Nodal_voltage(8,:)>1.05))
+     Over_Voltage_hour_Deterministic = numel(find(Nodal_voltage(8,:)>1.05))
+     Under_Voltage_hour_Deterministic = numel(find(Nodal_voltage(8,:)<0.95))
      case 'Stochastic'
      Over_Voltage_Counter=0;
      x=zeros(1,Duration+1);
@@ -141,5 +148,4 @@ switch PlanningType
      hold on
      plot(x,Voltage,'.')
      title('Voltage (p.u.)- Stochastic')
-     Voltage_Violation_hour_Stochastic = Over_Voltage_Counter
 end
