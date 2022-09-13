@@ -6,13 +6,14 @@ Load_Data;
 Gen_Data;
 Network_Data;
 
-Sub_Voltage=1; % p.u.
-Percision=0.001;
+Sub_Voltage=0.97; % p.u.
+Percision=0.003;
 Init_Voltage=1; % p.u. voltage is used to calculate load currents
 
 PlanningType=questdlg('Choose the type of planning studies:','Type','Deterministic',...
     'Stochastic','Deterministic');
-Horizon = str2double(inputdlg({'Planning horizon (max 8760 hours)'},'Input',[1 50])); 
+Horizon = str2double(inputdlg({'From (hour): Min=1','To (hour): Max=8760'},'Simulation duration 0<from<to<=8760',[1 70])); 
+Duration = Horizon(2,1)-Horizon(1,1);
 
 Num_of_Buses = length(Bus); % Since there is one slack bus, the actual numbers are -1
 Loads_Generations = zeros(Num_of_Buses,1);
@@ -24,24 +25,27 @@ Distance_Resistance=distances(Graph_Resistance);
 Distance_Reactance=distances(Graph_Reactance);
 
 [Bus_Numbers,~] = size(Bus);
-Nodal_voltage = zeros (Bus_Numbers,Horizon);
+Nodal_voltage = zeros (Bus_Numbers,Duration);
 [Branch_Numbers,~] = size(Branch);
-Branch_Current = zeros (Branch_Numbers,Horizon);
+Branch_Current = zeros (Branch_Numbers,Duration);
 
 switch PlanningType
     case 'Deterministic'
-        for i=1:1:Horizon
-            NumberofHourSimulated=i
-            if i==3635
-                i=i
-            end
+        Z_Score(1,1) = str2double(inputdlg({'Z_score generation~=0'},'Z-score of normal distribution for generation',[1 70]));
+        Z_Score(2,1) = str2double(inputdlg({'Z_score demand~=0'},'Z-score of normal distribution for demand',[1 70]));
+        for i=Horizon(1,1):1:Horizon(2,1)
+            NumberofHoursSimulated=i
             for bus=1:1:Num_of_Buses
                 is_bus=cellfun(@(x)isequal(x,bus),Topology);
                 [row,col] = find(is_bus);
                 if ~isempty(row)
                     Num_Elements=numel(row);
                     for j=1:1:Num_Elements
-                        Loads_Generations(bus,1) = Topology{row(j,1),1}(i,1)+Loads_Generations(bus,1);
+                        if row(j,1)<6  % for loads
+                            Loads_Generations(bus,1) = Topology{row(j,1),1}(i,1)+Z_Score(2,1)*Topology{row(j,1),1}(i,2)+Loads_Generations(bus,1); % x=mean+Z_score*STD
+                        else % for generations
+                            Loads_Generations(bus,1) = Topology{row(j,1),1}(i,1)+Z_Score(1,1)*Topology{row(j,1),1}(i,2)+Loads_Generations(bus,1); % x=mean+Z_score*STD
+                        end
                     end
                 end
             end
@@ -57,78 +61,46 @@ switch PlanningType
         Num_Samples = str2double(inputdlg({'Number of samples in MonteCarlo simulations'},'Input',[1 50]));
         empty_individual.Voltage = [];
         empty_individual.Current = [];
-        pop = repmat(empty_individual,Num_Samples,1);   % We run 100 power flows per each hour of the timeseries
-        BigPop = repmat(pop,8760,1);
+        pop = repmat(empty_individual,Num_Samples,1);
+        Results = repmat(pop,Duration,1);
         
-        Mean_Load_1 = (sum(Load_1))/8760;
-        STD_Load_1 = std(Load_1);
-        
-        Mean_Load_2 = (sum(Load_2))/8760;
-        STD_Load_2 = std(Load_2);
-        
-        Mean_Load_3 = (sum(Load_3))/8760;
-        STD_Load_3 = std(Load_3);
-        
-        Mean_Load_4=(sum(Load_4))/8760;
-        STD_Load_4 = std(Load_4);
-        
-        Mean_EV=(sum(EV))/8760;
-        STD_EV = std(EV);
-        
-        Mean_PV1=(sum(PV1))/8760;
-        STD_PV1 = std(PV1);
-        
-        Mean_PV2=(sum(PV2))/8760;
-        STD_PV2 = std(PV2);
-        
-        for i=1:1:Horizon
-            NumberofHourSimulated=i
-            for k=1:Num_Samples
-                if k==1
-                    for bus=1:1:Num_of_Buses
-                        is_bus=cellfun(@(x)isequal(x,bus),Topology);
-                        [row,col] = find(is_bus);
-                        if ~isempty(row)
-                            Num_Elements=numel(row);
-                            for j=1:1:Num_Elements
-                                Loads_Generations(bus,1) = Topology{row(j,1),1}(i,1)+Loads_Generations(bus,1);
-                            end
-                        end
-                    end
-                  
-                else
-                    %%%%% Creating random variables for each Load/Generation
-                    Load_1_rnd=normrnd(Mean_Load_1,STD_Load_1);
-                    Load_2_rnd=normrnd(Mean_Load_2,STD_Load_2);
-                    Load_3_rnd=normrnd(Mean_Load_3,STD_Load_3);
-                    Load_4_rnd=normrnd(Mean_Load_4,STD_Load_4);
-                    EV_rnd=normrnd(Mean_EV,STD_EV);
-                    PV1_rnd=normrnd(Mean_PV1,STD_PV1);
-                    PV2_rnd=normrnd(Mean_PV2,STD_PV2);
-                    Topology_rnd = {Load_1_rnd  8
-                                    Load_2_rnd  6
-                                    Load_3_rnd  11
-                                    Load_4_rnd 12
-                                    EV_rnd 11
-                                    PV1_rnd 6
-                                    PV2_rnd 8
-                                        };
-                    for bus=1:1:Num_of_Buses
-                        is_bus=cellfun(@(x)isequal(x,bus),Topology_rnd);
-                        [row,col] = find(is_bus);
-                        if ~isempty(row)
-                            Num_Elements=numel(row);
-                            for j=1:1:Num_Elements
-                                Loads_Generations(bus,1) = Topology_rnd{row(j,1),1}+Loads_Generations(bus,1);
-                            end
+        Counter=0;
+        for i=Horizon(1,1):1:Horizon(2,1)
+            NumberofHoursSimulated=i
+            Counter=Counter+1;
+            for k=1:Num_Samples 
+                %%%%% Creating random variables for each Load/Generation
+                Load_1_rnd = abs(normrnd(Load_1(i,1),Load_1(i,2)));
+                Load_2_rnd = abs(normrnd(Load_2(i,1),Load_2(i,2)));
+                Load_3_rnd = abs(normrnd(Load_3(i,1),Load_3(i,2)));
+                Load_4_rnd = abs(normrnd(Load_4(i,1),Load_4(i,2)));
+                Load_5_rnd = abs(normrnd(Load_5(i,1),Load_5(i,2)));
+                PV1_rnd = normrnd(PV1(i,1),PV1(i,2));
+                PV2_rnd = normrnd(PV2(i,1),PV2(i,2));
+                Topology_rnd = {Load_1_rnd  8
+                                Load_2_rnd  6
+                                Load_3_rnd  11
+                                Load_4_rnd 12
+                                Load_5_rnd 11
+                                PV1_rnd 6
+                                PV2_rnd 8
+                                    };
+                for bus=1:1:Num_of_Buses
+                    is_bus=cellfun(@(x)isequal(x,bus),Topology_rnd);
+                    [row,col] = find(is_bus);
+                    if ~isempty(row)
+                        Num_Elements=numel(row);
+                        for j=1:1:Num_Elements
+                            Loads_Generations(bus,1) = Topology_rnd{row(j,1),1}+Loads_Generations(bus,1);
                         end
                     end
                 end
+          
                 Loads_Generations = Loads_Generations./S_Base;
                 Object = PowerFlow(Num_of_Buses,Branch,Loads_Generations,Sub_Voltage,Init_Voltage,Percision,Graph_Resistance,Graph_Reactance,Distance_Resistance,Distance_Reactance);
                 Output = Object.Backward_Forward;
-                BigPop(((i-1)*Num_Samples)+k).Voltage = Object.V_New;
-                BigPop(((i-1)*Num_Samples)+k).Current = Object.Branch_Current;
+                Results(((Counter-1)*Num_Samples)+k).Voltage = Object.V_New;
+                Results(((Counter-1)*Num_Samples)+k).Current = Object.Branch_Current;
                 Loads_Generations = zeros(Num_of_Buses,1);
             end
         end
@@ -140,21 +112,34 @@ switch PlanningType
      hold on
      fplot(@(x) 0.95,'r')
      hold on
-     for i=1:Horizon
-         i=i
-         plot(i,Nodal_voltage(8,i),'.')
-         hold on
-     end
+     Over_Voltage_Counter=0;
+     x=zeros(1,Duration+1);
+     x(1,:)=(1:Duration+1);
+     y=Nodal_voltage(8,:);
+     plot(x,y,'.')
+     title('Voltage (p.u.)- deterministic')
+     Voltage_Violation_hour_Deterministic = numel(find(Nodal_voltage(8,:)>1.05))
      case 'Stochastic'
+     Over_Voltage_Counter=0;
+     x=zeros(1,Duration+1);
+     x(1,:)=(1:Duration+1);
+     x=repmat(x,[1,Num_Samples]);
+     x=sort(x);
+     Voltage=zeros(1,(Duration+1)*Num_Samples);
+     counter=0;
+     counter1=0;
+     for i=Horizon(1,1):1:Horizon(2,1)
+         counter1=counter1+1;
+        for j=1:Num_Samples
+            counter=counter+1;
+            Voltage(1,counter)=Results(((counter1-1)*Num_Samples)+j).Voltage(8,1);
+        end
+     end
      fplot(@(x) 1.05,'r')
      hold on
      fplot(@(x) 0.95,'r')
      hold on
-     for i=1:Horizon
-        i=i
-        for j=1:Num_Samples
-            plot(i,BigPop(((i-1)*Num_Samples)+j).Voltage(5,1),'.')
-            hold on
-        end
-     end
+     plot(x,Voltage,'.')
+     title('Voltage (p.u.)- Stochastic')
+     Voltage_Violation_hour_Stochastic = Over_Voltage_Counter
 end
