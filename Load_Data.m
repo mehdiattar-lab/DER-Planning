@@ -1,3 +1,5 @@
+% Mean and STD of load from Energivirasto: https://energiavirasto.fi/etusivu
+
 
 Load_1 = load('Mean_STD_Load_Type3.mat');
 Load_1=Load_1.Load_Type_3;
