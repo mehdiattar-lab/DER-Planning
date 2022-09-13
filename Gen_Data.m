@@ -1,3 +1,7 @@
+% Mean and STD of solar irradiance from ilmatieteenlaitos
+% https://en.ilmatieteenlaitos.fi/download-observations
+% The data is from Jyväskylän lentoasema
+
 Irradiance1 = cell2mat(struct2cell(load('Mean_STD_Solar.mat'))); % Irradiance per w/m2
 Irradiance2 = cell2mat(struct2cell(load('Mean_STD_Solar.mat'))); % Irradiance per w/m2
 
