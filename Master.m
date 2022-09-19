@@ -12,7 +12,7 @@ Load_Data;
 Gen_Data;
 Network_Data;
 
-Sub_Voltage=0.97; % p.u.
+Sub_Voltage=0.99; % p.u.
 Percision=0.003;
 Init_Voltage=1; % p.u. voltage is used to calculate load currents
 
@@ -31,13 +31,13 @@ Distance_Resistance=distances(Graph_Resistance);
 Distance_Reactance=distances(Graph_Reactance);
 
 [Bus_Numbers,~] = size(Bus);
-Nodal_voltage = zeros (Bus_Numbers,Duration);
+Nodal_Voltage = zeros (Bus_Numbers,Duration);
 [Branch_Numbers,~] = size(Branch);
 Branch_Current = zeros (Branch_Numbers,Duration);
 
 switch PlanningType
     case 'Deterministic'
-        Z_Score(1,1) = str2double(inputdlg({'Z_score generation~=0'},'Z-score of normal distribution for generation',[1 70]));
+        Z_Score(1,1) = -str2double(inputdlg({'Z_score generation~=0'},'Z-score of normal distribution for generation',[1 70]));
         Z_Score(2,1) = str2double(inputdlg({'Z_score demand~=0'},'Z-score of normal distribution for demand',[1 70]));
         for i=Horizon(1,1):1:Horizon(2,1)
             NumberofHoursSimulated=i
@@ -58,8 +58,8 @@ switch PlanningType
             Loads_Generations = Loads_Generations./S_Base;
             Object = PowerFlow(Num_of_Buses,Branch,Loads_Generations,Sub_Voltage,Init_Voltage,Percision,Graph_Resistance,Graph_Reactance,Distance_Resistance,Distance_Reactance);
             Output = Object.Backward_Forward;
-            Nodal_voltage(:,i) = Object.V_New;
-            Branch_Current(:,i) = Object.Branch_Current;
+            Nodal_Voltage(:,i+1-Horizon(1,1)) = Object.V_New;
+            Branch_Current(:,i+1-Horizon(1,1)) = Object.Branch_Current;
             Loads_Generations = zeros(Num_of_Buses,1);
         end
         
@@ -112,40 +112,55 @@ switch PlanningType
         end
 end
 
-switch PlanningType
-    case 'Deterministic'
-     fplot(@(x) 1.05,'r')
-     hold on
-     fplot(@(x) 0.95,'r')
-     hold on
-     Over_Voltage_Counter=0;
-     x=zeros(1,Duration+1);
-     x(1,:)=(1:Duration+1);
-     y=Nodal_voltage(8,:);
-     plot(x,y,'.')
-     title('Voltage (p.u.)- deterministic')
-     Over_Voltage_hour_Deterministic = numel(find(Nodal_voltage(8,:)>1.05))
-     Under_Voltage_hour_Deterministic = numel(find(Nodal_voltage(8,:)<0.95))
-     case 'Stochastic'
-     Over_Voltage_Counter=0;
-     x=zeros(1,Duration+1);
-     x(1,:)=(1:Duration+1);
-     x=repmat(x,[1,Num_Samples]);
-     x=sort(x);
-     Voltage=zeros(1,(Duration+1)*Num_Samples);
-     counter=0;
-     counter1=0;
-     for i=Horizon(1,1):1:Horizon(2,1)
-         counter1=counter1+1;
-        for j=1:Num_Samples
-            counter=counter+1;
-            Voltage(1,counter)=Results(((counter1-1)*Num_Samples)+j).Voltage(8,1);
-        end
-     end
-     fplot(@(x) 1.05,'r')
-     hold on
-     fplot(@(x) 0.95,'r')
-     hold on
-     plot(x,Voltage,'.')
-     title('Voltage (p.u.)- Stochastic')
-end
+
+
+
+%%%%%%%%%%%%%%%%%% Ploting
+
+% switch PlanningType
+%     case 'Deterministic'
+%      fplot(@(x) 1.05,'r')
+%      hold on
+%      fplot(@(x) 0.95,'r')
+%      hold on
+%      Over_Voltage_Counter=0;
+%      x=zeros(1,Duration+1);
+%      x(1,:)=(1:Duration+1);
+%      y=Nodal_Voltage(8,:);
+%      plot(x,y,'.')
+%      title('Voltage (p.u.)- deterministic')
+%     
+%     case 'Stochastic'
+%      Over_Voltage_Counter=0;
+%      x=zeros(1,Duration+1);
+%      x(1,:)=(1:Duration+1);
+%      x=repmat(x,[1,Num_Samples]);
+%      x=sort(x);
+%      Voltage=zeros(1,(Duration+1)*Num_Samples);
+%      counter=0;
+%      counter1=0;
+%      Num_violation_stochastic = 0;
+%      for i=Horizon(1,1):1:Horizon(2,1)
+%          counter1=counter1+1;
+%          Violation="False";
+%         for j=1:Num_Samples
+%             counter=counter+1;
+%             Voltage(1,counter)=Results(((counter1-1)*Num_Samples)+j).Voltage(8,1);
+%             if  find(Results(((counter1-1)*Num_Samples)+j).Voltage>1.05)
+%                 Violation="True";
+%             end
+%         end
+%         if strcmp(Violation,"True")
+%             Num_violation_stochastic=Num_violation_stochastic+1;
+%         end
+%      end
+%      
+%      fplot(@(x) 1.05,'r')
+%      hold on
+%      fplot(@(x) 0.95,'r')
+%      hold on
+%      plot(x,Voltage,'.')
+%      title('Voltage (p.u.)- Stochastic')
+%      Num_violation_stochastic=Num_violation_stochastic
+%      
+% end
