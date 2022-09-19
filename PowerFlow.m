@@ -1,4 +1,7 @@
 % Backward_Forward power flow
+% This software was developed as a part of the course distributed energy resources in electricity networks
+% This source code is licensed under the MIT license.
+% Author: Mehdi Attar <Mehdi.attar@tuni.fi>
 
 classdef PowerFlow < handle
     properties
@@ -89,7 +92,7 @@ classdef PowerFlow < handle
                                 [a b] = find(First_Matrix == i);
                                 [c d] = find(First_Matrix == Neiboring_Buses(k,1));
                                 row=intersect(a,c);
-                                obj.V_New(i,1)=obj.V_Reference(Neiboring_Buses(k,1),1)-obj.Voltage_Drop(row,1);
+                                obj.V_New(i,1)=obj.V_New(Neiboring_Buses(k,1),1)-obj.Voltage_Drop(row,1);
                             end
                         end
                     end
