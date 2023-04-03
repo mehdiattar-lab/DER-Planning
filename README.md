@@ -1,4 +1,9 @@
 # DER-Planning
+This code is for the course "Distributed energy resources in electricity networks" presented at Tampere university develped by Mehdi Attar (mehdi.attar@tuni.fi).
+course content:
+https://www.tuni.fi/en/students-guide/curriculum/course-units/tut-cu-g-42081?year=2020&q=null
+
+
 The cod called "Master" binds together all the other pieces of the codes in this repository. The aim of the codes is to simulate deteministic (worse case scenario) and stochastic distribution netwrok connection planning.
 
 ## Requirements
